@@ -115,7 +115,7 @@ func (r *Runner) download(base config.Options) {
 	if outputFolder == "" {
 		dir, err := os.Getwd()
 		if err != nil {
-			opts.Logger.Error(fmt.Sprintf("Error determining current directory: %v", err))
+			opts.Logger.Errorf("Error determining current directory: %v", err)
 			outputFolder = "."
 		} else {
 			outputFolder = dir
@@ -135,7 +135,7 @@ func (r *Runner) download(base config.Options) {
 	}
 
 	if isNewVersionAvailable {
-		opts.Logger.Info(fmt.Sprintf("A new comics-downloader version is available at %s", newVersionLink))
+		opts.Logger.Infof("A new comics-downloader version is available at %s", newVersionLink)
 	}
 
 	for _, rawURL := range strings.Split(opts.URL, ",") {

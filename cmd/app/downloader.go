@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -41,8 +42,12 @@ func NewRunner(base config.Options) *Runner {
 		loggerFactory: func(bind bool, messages chan string) *logger.Logger {
 			return logger.NewLogger(bind, messages)
 		},
-		clientFactory: httpclient.NewComicClient,
-		sleep:         time.Sleep,
+		clientFactory: func() *httpclient.ComicClient {
+			return httpclient.NewComicClient(
+				httpclient.WithUserAgent(fmt.Sprintf("comics-downloader/%s", version.Tag)),
+			)
+		},
+		sleep: time.Sleep,
 	}
 }
 
@@ -122,7 +127,11 @@ func (r *Runner) download(base config.Options) {
 
 	isNewVersionAvailable, newVersionLink, err := version.IsNewAvailable(ctx, opts.Client.HTTPClient())
 	if err != nil {
-		opts.Logger.Error("There was an error while checking for a new comics-downloader version")
+		if errors.Is(err, version.ErrInvalidSemverTag) {
+			opts.Logger.Info(fmt.Sprintf("Skipping version check: %v", err))
+		} else {
+			opts.Logger.Error(fmt.Sprintf("There was an error while checking for a new comics-downloader version: %v", err))
+		}
 	}
 
 	if isNewVersionAvailable {

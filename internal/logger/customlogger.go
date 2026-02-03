@@ -19,7 +19,10 @@ type Logger struct {
 // NewLogger returns a logger instance.
 func NewLogger(bindToChannel bool, messages chan string) *Logger {
 	log := logrus.New()
-	log.SetFormatter(&logrus.TextFormatter{DisableTimestamp: true})
+	log.SetFormatter(&logrus.TextFormatter{
+		DisableTimestamp:       true,
+		DisableLevelTruncation: true,
+	})
 	return &Logger{
 		inner:         log,
 		bindToChannel: bindToChannel && messages != nil,

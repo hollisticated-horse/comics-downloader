@@ -36,29 +36,42 @@ func deobfuscateUrl(imageLink string) (string, error) {
 
 	var quality string
 
-	if strings.Contains(imageLink, "=s0?") {
-		imageLink = imageLink[:strings.Index(imageLink, "=s0?")]
+	if idx := strings.Index(imageLink, "=s0?"); idx >= 0 {
+		imageLink = imageLink[:idx]
 		quality = "=s0"
-	} else {
-		imageLink = imageLink[:strings.Index(imageLink, "=s1600?")]
+	} else if idx := strings.Index(imageLink, "=s1600?"); idx >= 0 {
+		imageLink = imageLink[:idx]
 		quality = "=s1600"
+	} else {
+		return "", fmt.Errorf("readcomiconline: no quality marker in obfuscated URL")
 	}
 
+	// String surgery to reconstruct the base64 payload.
+	if len(imageLink) < 25 {
+		return "", fmt.Errorf("readcomiconline: obfuscated segment too short (%d chars)", len(imageLink))
+	}
 	imageLink = imageLink[4:22] + imageLink[25:]
+	if len(imageLink) < 6 {
+		return "", fmt.Errorf("readcomiconline: segment too short after first surgery")
+	}
 	imageLink = imageLink[0:len(imageLink)-6] + imageLink[len(imageLink)-2:]
 
 	sd, err := base64.StdEncoding.DecodeString(imageLink)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("readcomiconline: base64 decode failed: %w", err)
 	}
 
-	imageLink = string(sd)
-	imageLink = imageLink[0:13] + imageLink[17:]
-	imageLink = imageLink[0 : len(imageLink)-2]
-	imageLink = imageLink + quality
+	decoded := string(sd)
+	if len(decoded) < 17 {
+		return "", fmt.Errorf("readcomiconline: decoded segment too short (%d chars)", len(decoded))
+	}
+	decoded = decoded[0:13] + decoded[17:]
+	if len(decoded) < 2 {
+		return "", fmt.Errorf("readcomiconline: decoded segment too short after second surgery")
+	}
+	decoded = decoded[0:len(decoded)-2] + quality
 
-	link := "https://2.bp.blogspot.com/" + imageLink
-	return link, nil
+	return "https://2.bp.blogspot.com/" + decoded, nil
 }
 
 func (c *ReadComicOnline) retrieveImageLinks(comic *core.Comic) ([]string, error) {
@@ -86,14 +99,21 @@ func (c *ReadComicOnline) retrieveImageLinks(comic *core.Comic) ([]string, error
 	for i := range match {
 		url := match[i][1]
 
-		clearUrl, err := deobfuscateUrl(url)
-		if err != nil {
-			return links, err
+		clearUrl, decErr := deobfuscateUrl(url)
+		if decErr != nil {
+			if c.options.Debug && c.options.Logger != nil {
+				c.options.Logger.Debugf("readcomiconline: skipping undecodable entry: %v", decErr)
+			}
+			continue
 		}
 
-		if util.IsURLValid(clearUrl) {
+		if util.IsURLValid(clearUrl) && !util.IsValueInSlice(clearUrl, links) {
 			links = append(links, clearUrl)
 		}
+	}
+
+	if len(links) == 0 && len(match) > 0 {
+		err = fmt.Errorf("readcomiconline: found %d push() entries but none could be decoded; the site may have updated its obfuscation scheme", len(match))
 	}
 
 	if c.options.Debug && c.options.Logger != nil {

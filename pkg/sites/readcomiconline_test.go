@@ -18,9 +18,14 @@ const (
 )
 
 func newReadComicOnlineServer() *httptest.Server {
+	// Issue page: two distinct valid blogspot URLs, each repeated 3× to exercise dedup.
 	issueHTML := `
         <html>
             <body>
+                <script>push('https://2.bp.blogspot.com/abc123=s1600?')</script>
+                <script>push('https://2.bp.blogspot.com/def456=s1600?')</script>
+                <script>push('https://2.bp.blogspot.com/abc123=s1600?')</script>
+                <script>push('https://2.bp.blogspot.com/def456=s1600?')</script>
                 <script>push('https://2.bp.blogspot.com/abc123=s1600?')</script>
                 <script>push('https://2.bp.blogspot.com/def456=s1600?')</script>
             </body>
@@ -46,6 +51,35 @@ func newReadComicOnlineServer() *httptest.Server {
 	}))
 }
 
+// TestReadComicOnlineObfuscationBroken verifies that when every push() entry fails to
+// decode (new server-side encryption scheme), Initialize returns a descriptive error
+// rather than panicking or silently returning empty links.
+func TestReadComicOnlineObfuscationBroken(t *testing.T) {
+	// Payload mimics the new =s1600?ipx=2 format that the live site emits;
+	// base64 surgery on it produces invalid padding, so deobfuscateUrl errors.
+	brokenHTML := `<html><body>
+		<script>push('AAAA1111AAAA1111AAAA=s1600?ipx=2')</script>
+		<script>push('BBBB2222BBBB2222BBBB=s1600?ipx=2')</script>
+	</body></html>`
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = fmt.Fprint(w, brokenHTML)
+	}))
+	defer server.Close()
+
+	opts := &config.Options{
+		URL:    server.URL + rcoIssuePath,
+		Logger: logger.NewLogger(false, nil),
+	}
+	scraper := NewReadComiconline(opts)
+	comic := &core.Comic{URLSource: server.URL + rcoIssuePath}
+
+	err := scraper.Initialize(comic)
+	require.Error(t, err)
+	require.Empty(t, comic.Links)
+	require.Contains(t, err.Error(), "none could be decoded")
+}
+
 func TestReadComicOnlineScraper(t *testing.T) {
 	server := newReadComicOnlineServer()
 	defer server.Close()
@@ -63,6 +97,7 @@ func TestReadComicOnlineScraper(t *testing.T) {
 
 	comic := &core.Comic{URLSource: server.URL + rcoIssuePath}
 	require.NoError(t, scraper.Initialize(comic))
+	// Each URL appears 3× in the HTML; dedup must yield exactly 2.
 	require.Equal(t, []string{
 		"https://2.bp.blogspot.com/abc123=s1600?",
 		"https://2.bp.blogspot.com/def456=s1600?",

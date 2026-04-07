@@ -16,7 +16,6 @@ var SupportedSites = map[string]map[string]bool{
 	"manganato":       {"isDisabled": false},
 	"mangatown":       {"isDisabled": false},
 	"readallcomics":   {"isDisabled": false},
-	"readcomiconline":   {"isDisabled": false},
 	"readcomicsonline": {"isDisabled": false},
 }
 

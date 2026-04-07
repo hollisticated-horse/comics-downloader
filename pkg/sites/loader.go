@@ -99,8 +99,6 @@ func LoadComicFromSource(options *config.Options) ([]*core.Comic, error) {
 	switch {
 	case strings.Contains(options.Source, "readcomicsonline.ru"):
 		base = NewReadComicsOnline(options)
-	case strings.Contains(options.Source, "readcomiconline"):
-		base = NewReadComiconline(options)
 	case strings.Contains(options.Source, "comicextra"):
 		base = NewComicextra(options)
 	case strings.Contains(options.Source, "mangareader"):

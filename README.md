@@ -11,7 +11,6 @@
 
 - https://comicextra.net/
 - https://readallcomics.com/
-- https://readcomiconline.li/  ⚠️
 - https://readcomicsonline.ru/
 - https://www.mangareader.tv/  ⚠️
 - https://www.mangatown.com/   ⚠️
@@ -93,7 +92,6 @@ Usage:
 | http://www.comicextra.com/  | &#x2713; | &#x2717; | &#x2713; |
 | http://www.mangatown.com/   | &#x2713; | &#x2717; | &#x2713; |
 | https://mangadex.org/       | &#x2713; | &#x2713; | &#x2717; |
-| https://readcomiconline.li/ | &#x2713; | &#x2717; | &#x2713; |
 | https://readcomicsonline.ru/ | &#x2713; | &#x2717; | &#x2713; |
 | https://www.mangareader.tv/ | &#x2713; | &#x2717; | &#x2713; |
 | https://www.mangakalot.com/ | &#x2713; | &#x2717; | &#x2713; |

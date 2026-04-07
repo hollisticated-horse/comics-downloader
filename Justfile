@@ -56,3 +56,11 @@ remove-builds:
 # Run static analysis
 lint:
     golangci-lint run
+
+# Run GUI unit tests (headless, no display required)
+test-gui:
+    go test -v ./cmd/gui/...
+
+# Run the GUI
+run-gui:
+    go run ./cmd/gui
